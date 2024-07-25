@@ -21,13 +21,10 @@ import os
 #from privacy_accountants import privacy_accountant
 from src.util import linear_beta_schedule, sample_index, p_losses, ImageNet
 from src.models import UNet
-from src.diffusion import GaussianDiffusionSampler, GaussianDiffusionTrainer
 
 
 def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_path):
     
-    trainer = GaussianDiffusionTrainer(
-                model, hyperparams["beta_1"], hyperparams["beta_T"], hyperparams["timesteps"]).to(device)
     itter = 0
     while True:
         for (step, batch) in enumerate(dataloader):
@@ -42,7 +39,7 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
             t = sample_index(hyperparams).to(torch.int64)
             print(t.shape, batch.shape)
 
-            loss = trainer(batch, t)
+            loss = p_losses(model, batch, t, hyperparams)
 
             if step % 100 == 0:
                 print("Loss:", loss.item())
@@ -70,20 +67,6 @@ if __name__ == '__main__':
    # arg parse stuff here
     
     timesteps = 1000
-    betas = linear_beta_schedule(timesteps= timesteps)
-
-    # define alphas 
-    alphas = 1. - betas
-    alphas_cumprod = torch.cumprod(alphas, axis=0)
-    alphas_cumprod_prev = F.pad(alphas_cumprod[:-1], (1, 0), value=1.0)
-    sqrt_recip_alphas = torch.sqrt(1.0 / alphas)
-
-    # calculations for diffusion q(x_t | x_{t-1}) and others
-    sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
-    sqrt_one_minus_alphas_cumprod = torch.sqrt(1. - alphas_cumprod)
-
-    # calculations for posterior q(x_{t-1} | x_t, x_0)
-    posterior_variance = betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
 
     save_and_sample_every = 1000
 
@@ -91,6 +74,15 @@ if __name__ == '__main__':
 
     root =  os.getcwd()
     data_dir = os.path.join(root, "DP-DDPM\\data\\Imagenet32_train")
+
+    betas = linear_beta_schedule(timesteps= timesteps)
+    alphas = torch.ones_like(betas) - betas
+    alphas_cumprod = torch.cumprod(alphas, axis = 0) 
+    one_minus_alpha_cumprod = torch.ones_like(alphas_cumprod) - alphas_cumprod
+    sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
+    beta_over_one_minus_alpha = betas/torch.sqrt(torch.ones_like(alphas_cumprod) - alphas_cumprod)
+    recp_sqrt_alphas_cumprod = 1./torch.sqrt(alphas_cumprod)
+
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -100,6 +92,7 @@ if __name__ == '__main__':
         "timesteps": 1000,
         "batch size": 100, #1024 #4096, 
         "iterations": 2, #200000,
+        "image_channels": 3,
         "image_size":  32,
         "channels": 192,
         "resblock_per_resolution": 2,
@@ -111,15 +104,15 @@ if __name__ == '__main__':
         "index ranges": [[0,200], [200,800], [800,1000]],
         "index sampling weights": [0.05, 0.9, 0.05],
         "timesteps": timesteps,
-        "alphas": alphas,
         "betas": betas,
+        "alphas": alphas,
         "alphas_cumprod": alphas_cumprod,
-        "alphas_cumprod_prev": alphas_cumprod_prev,
-        "sqrt_recip_alphas": sqrt_recip_alphas,
+        "one_minus_alpha_cumprod": one_minus_alpha_cumprod,
         "sqrt_alphas_cumprod": sqrt_alphas_cumprod,
-        "sqrt_one_minus_alphas_cumprod": sqrt_one_minus_alphas_cumprod,
-        "posterior_variance": posterior_variance,
+        "beta_over_one_minus_alpha": beta_over_one_minus_alpha,
+        "recp_sqrt_alphas_cumprod": recp_sqrt_alphas_cumprod,
         "max_clip": 1e-3, 
+        "loss_norm": 'l1',
         "epsilon threshold": None, 
         "noise variance": None, 
         "dropout": 0, #  

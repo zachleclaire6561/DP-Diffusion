@@ -25,87 +25,64 @@ def sample_index(hyper_parameters):
     return torch.from_numpy(indices).to(hyper_parameters["device"])
 
 
-def extract(a, t, x_shape):
-    batch_size = t.shape[0]
-    out = a.gather(-1, t.cpu().to(torch.int64))
-    return out.reshape(batch_size, *((1,) * (len(x_shape) - 1))).to(t.device)
+def p_losses(denoise_model, batch, t, hyper_parameters):
 
-
-def p_losses(denoise_model, x_start, t, sqrt_alphas_cumprod, sqrt_one_minus_alphas_cumprod, noise=None, loss_type="l1"):
-    if noise is None:
-        noise = torch.rand(x_start.shape)
-
-    x_noisy = q_sample(x_start=x_start, t=t, sqrt_alphas_cumprod = sqrt_alphas_cumprod, \
-                       sqrt_one_minus_alphas_cumprod = sqrt_one_minus_alphas_cumprod, noise=noise)
+    noise = torch.rand_like(batch)
+    x_noisy = q_sample(x_start=batch, t=t, hyper_parameters=hyper_parameters)
     predicted_noise = denoise_model(x_noisy, t)
 
-    if loss_type == 'l1':
+    loss_norm = hyper_parameters["loss_norm"]
+    if loss_norm == 'l1':
         loss = F.l1_loss(noise, predicted_noise)
-    elif loss_type == 'l2':
+    elif loss_norm == 'l2':
         loss = F.mse_loss(noise, predicted_noise)
-    elif loss_type == "huber":
+    elif loss_norm == "huber":
         loss = F.smooth_l1_loss(noise, predicted_noise)
-    else:
-        raise NotImplementedError()
 
     return loss
 
 
 # forward diffusion step
-def q_sample(x_start, t, sqrt_alphas_cumprod,sqrt_one_minus_alphas_cumprod, noise=None):
-    if noise is None:
-        noise = torch.randn_like(x_start)
-    sqrt_alphas_cumprod_t = extract(sqrt_alphas_cumprod, t, x_start.shape)
-    sqrt_one_minus_alphas_cumprod_t = extract(
-        sqrt_one_minus_alphas_cumprod, t, x_start.shape
-    )
-    print(sqrt_alphas_cumprod_t.shape, x_start.shape, sqrt_one_minus_alphas_cumprod_t.shape, noise.shape)
-    return sqrt_alphas_cumprod_t * x_start + sqrt_one_minus_alphas_cumprod_t * noise
+def q_sample(batch, t, hyper_parameters):
+
+    coef_shape = (len(t), 1,1,1)
+    sqrt_alphas_cumprod = hyper_parameters["sqrt_alphas_cumprod"]
+    one_minus_alpha_cumprod = hyper_parameters["one_minus_alpha_cumprod"]
+    noise = torch.rand_like(batch, dtype = torch.float64)
+
+    return sqrt_alphas_cumprod[t].reshape(coef_shape) * batch + one_minus_alpha_cumprod[t].reshape(coef_shape) * noise
 
 
 @torch.no_grad()
-def p_sample(model, x, t, t_index, hyper_parameters):
-    betas_t = extract(hyper_parameters["betas"], t, x.shape)
-    sqrt_one_minus_alphas_cumprod_t = extract(
-        hyper_parameters["sqrt_one_minus_alphas_cumprod"], t, x.shape
-    )
-    sqrt_recip_alphas_t = extract(hyper_parameters["sqrt_recip_alphas"], t, x.shape)
+def p_sample(model, batch, t, hyper_parameters):
+
+    coef_shape = (len(t), 1,1,1)
+    betas = hyper_parameters["betas"]
+    recp_sqrt_alphas_cumprod = hyper_parameters["recp_sqrt_alphas_cumprod"]
+    beta_over_one_minus_alpha = hyper_parameters["beta_over_one_minus_alpha"]
     
-    # Equation 11 in the paper
-    # Use our model (noise predictor) to predict the mean
-    model_mean = sqrt_recip_alphas_t * (
-        x - betas_t * model(x, t) / sqrt_one_minus_alphas_cumprod_t
-    )
+    noise = torch.rand_like(batch)
 
-    if t_index == 0:
-        return model_mean
-    else:
-        posterior_variance_t = extract(hyper_parameters["posterior_variance"], t, x.shape)
-        noise = torch.randn_like(x)
-        # Algorithm 2 line 4:
-        return model_mean + torch.sqrt(posterior_variance_t) * noise 
+    model_mean = recp_sqrt_alphas_cumprod[t].reshape(coef_shape) * (batch - beta_over_one_minus_alpha[t].reshape(coef_shape) * model(x, t))
+    
+    return model_mean + torch.sqrt(betas[t]).reshape(coef_shape) * noise 
 
-# Algorithm 2 (including returning all images)
 @torch.no_grad()
-def p_sample_loop(model, shape, hyper_parameters):
-    device = next(model.parameters()).device
-
-    b = shape[0]
-    # start from pure noise (for each example in the batch)
-    img = torch.randn(shape, device=device)
+def sample(model, hyper_parameters, sample_count = 10):
+    
+    sample_shape = (sample_count, hyper_parameters["image_channels"], hyper_parameters["image_size"], hyper_parameters["image_size"])
+    device = hyper_parameters["device"]
+    img = torch.randn(sample_shape, device = device)
     imgs = []
 
     for i in tqdm(reversed(range(0, hyper_parameters["timesteps"])), desc='sampling loop time step', total=hyper_parameters["timesteps"]):
-        img = p_sample(model, img, torch.full((b,), i, device=device, dtype=torch.long), i, hyper_parameters)
+        img = p_sample(model, img, torch.full(), i, hyper_parameters)
         imgs.append(img.cpu().numpy())
+
     return imgs
 
-@torch.no_grad()
-def sample(model, image_size, hyper_parameters, batch_size=16, channels=3):
-    return p_sample_loop(model, shape=(batch_size, channels, image_size, image_size), hyper_parameters = hyper_parameters)
-
 ##
-##
+## Data Sampling
 ##
 
 def unpickle(file):
