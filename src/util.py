@@ -8,7 +8,6 @@ import numpy as np
 import os
 import pickle
 import numpy as np
-from PIL import Image
 
 def linear_beta_schedule(timesteps):
     beta_start = 0.0001

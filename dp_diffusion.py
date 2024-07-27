@@ -1,19 +1,13 @@
 import numpy as np
 
 import torch
-from torch.nn import functional as F
 from torch.optim import Adam
 from torch.optim.swa_utils import AveragedModel
 from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import DataLoader
 
-from torchvision.transforms import Compose
-from torchvision import transforms
-
-from pathlib import Path
 import os
 import json
-
 
 #from privacy_accountants import privacy_accountant
 from src.util import linear_beta_schedule, sample_index, p_losses, save_file, ImageNet
@@ -46,7 +40,7 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
 
             if step % 100 == 0:
                 print("Loss:", loss.item())
-                
+
                 # save losses
                 np.savetxt(f"{checkpoint_path}", np.array(losses), delimiter=",")
 
