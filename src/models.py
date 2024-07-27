@@ -1,4 +1,4 @@
-# source: https://github.com/zoubohao/DenoisingDiffusionProbabilityModel-ddpm-/blob/main/Diffusion/Model.py
+# Source: https://github.com/w86763777/pytorch-ddpm/blob/master/model.py
 
 import math
 import torch
@@ -125,7 +125,7 @@ class ResBlock(nn.Module):
         )
         self.temb_proj = nn.Sequential(
             Swish(),
-            nn.Linear(out_ch, tdim),
+            nn.Linear(tdim, out_ch),
         )
         self.block2 = nn.Sequential(
             nn.GroupNorm(32, out_ch),
@@ -151,9 +151,7 @@ class ResBlock(nn.Module):
         init.xavier_uniform_(self.block2[-1].weight, gain=1e-5)
 
     def forward(self, x, temb):
-        print(x.shape, temb.shape)
         h = self.block1(x)
-        print(self.temb_proj(temb).shape, h.shape)
         h += self.temb_proj(temb)[:, :, None, None]
         h = self.block2(h)
 
@@ -219,6 +217,7 @@ class UNet(nn.Module):
         # Timestep embedding
         temb = self.time_embedding(t)
         # Downsampling
+        #print(x.shape)
         h = self.head(x)
         hs = [h]
         for layer in self.downblocks:
@@ -236,3 +235,14 @@ class UNet(nn.Module):
 
         assert len(hs) == 0
         return h
+
+
+if __name__ == '__main__':
+    batch_size = 8
+    model = UNet(
+        T=1000, ch=192, ch_mult=[1, 2, 2, 2], attn=[1],
+        num_res_blocks=2, dropout=0.1)
+    x = torch.randn(batch_size, 3, 32, 32)
+    t = torch.randint(1000, (batch_size, ))
+    y = model(x, t)
+    print(f"Loaded model. Total learnable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")

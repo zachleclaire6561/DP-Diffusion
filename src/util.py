@@ -1,3 +1,5 @@
+# source: 
+
 import torch
 from torch.nn import functional as F
 from torch.utils.data import Dataset
@@ -6,7 +8,6 @@ import numpy as np
 import os
 import pickle
 import numpy as np
-from tqdm.auto import tqdm
 from PIL import Image
 
 def linear_beta_schedule(timesteps):
@@ -22,13 +23,13 @@ def sample_index(hyper_parameters):
     indices = np.array([np.random.randint(*index_ranges[i], size = hyper_parameters["batch size"]) for i in range(len(weights))]).T
     group_choice = np.random.choice(a = np.arange(len(weights)), p = weights, size = hyper_parameters["batch size"])
     indices = indices[np.arange(len(group_choice)), group_choice]
-    return torch.from_numpy(indices).to(hyper_parameters["device"])
+    return torch.from_numpy(indices)
 
 
 def p_losses(denoise_model, batch, t, hyper_parameters):
 
-    noise = torch.rand_like(batch)
-    x_noisy = q_sample(x_start=batch, t=t, hyper_parameters=hyper_parameters)
+    noise = torch.rand_like(batch, dtype=torch.float32)
+    x_noisy = q_sample(batch=batch, t=t, hyper_parameters=hyper_parameters)
     predicted_noise = denoise_model(x_noisy, t)
 
     loss_norm = hyper_parameters["loss_norm"]
@@ -45,12 +46,19 @@ def p_losses(denoise_model, batch, t, hyper_parameters):
 # forward diffusion step
 def q_sample(batch, t, hyper_parameters):
 
+    device = hyper_parameters['device']
     coef_shape = (len(t), 1,1,1)
     sqrt_alphas_cumprod = hyper_parameters["sqrt_alphas_cumprod"]
+    sqrt_alphas_cumprod = sqrt_alphas_cumprod.to(device)
     one_minus_alpha_cumprod = hyper_parameters["one_minus_alpha_cumprod"]
-    noise = torch.rand_like(batch, dtype = torch.float64)
+    one_minus_alpha_cumprod = one_minus_alpha_cumprod.to(device)
+    noise = torch.rand_like(batch, dtype = torch.float32, device = device)
 
-    return sqrt_alphas_cumprod[t].reshape(coef_shape) * batch + one_minus_alpha_cumprod[t].reshape(coef_shape) * noise
+    #print(sqrt_alphas_cumprod.device, batch.device)
+    x = sqrt_alphas_cumprod[t].reshape(coef_shape) * batch
+    #print(one_minus_alpha_cumprod.device, t.device, noise.device)
+    x += one_minus_alpha_cumprod[t].reshape(coef_shape) * noise
+    return x
 
 
 @torch.no_grad()
@@ -75,7 +83,7 @@ def sample(model, hyper_parameters, sample_count = 10):
     img = torch.randn(sample_shape, device = device)
     imgs = []
 
-    for i in tqdm(reversed(range(0, hyper_parameters["timesteps"])), desc='sampling loop time step', total=hyper_parameters["timesteps"]):
+    for i in reversed(range(0, hyper_parameters["timesteps"])):
         img = p_sample(model, img, torch.full(), i, hyper_parameters)
         imgs.append(img.cpu().numpy())
 
@@ -118,4 +126,8 @@ class ImageNet(Dataset):
 
     def __getitem__(self, idx):
         return self.samples[idx]
-    
+
+def save_file(object, path, file_name):
+    if not os.path.exists(path):
+        os.mkdir(path)
+    torch.save(object, f"{path}/{file_name}")

@@ -1,0 +1,34 @@
+{
+    "timesteps": 1000, 
+    "batch size": 10,
+    "iterations": 1, 
+    "image channels": 3,
+    "image size": [32,32],
+
+    "channels": 192,
+    "resblocks": 2,
+    "n_groups": 32,
+    "ch_mults": [1,2,2,2],
+    "attn": [1],
+    "n_heads": 1,
+    "channel_per_head": 16,
+
+    "private training": true,
+    "learning rate": 1e-3,
+    "EMA": 0.999,
+    "index ranges": [[0,200], [200,800], [800,1000]],
+    "index sampling weights": [0.05, 0.9, 0.05],
+    "max_clip": 1e-3, 
+    "loss_norm": "l1",
+    "dropout": 0,
+
+    "save path": "DP-DDPM\\checkpoints\\Imagenet-Pretrain\\",
+    "split": "train",
+    "data_directory": "DP-DDPM\\data\\Imagenet32_train",
+    "save_and_sample_every": 1000,
+
+    "max_clip": 1e-3,
+    "aug mult": 0,
+    "epsilon threshold": 0,
+    "noise variance": 0
+}
