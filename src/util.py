@@ -119,7 +119,6 @@ class ImageNet(Dataset):
                 self.samples = data_set_batch
             else:
                 torch.cat((self.samples, data_set_batch), 0)
-            break
 
     def __len__(self):
             return self.samples.shape[0]
