@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     # load and add model parameters
 
-    with open('config\\pretrain_2.json') as f:
+    with open('config/pretrain.json') as f:
         hyperparams = json.load(f)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
