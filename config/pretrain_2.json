@@ -1,7 +1,7 @@
 {
     "timesteps": 1000, 
-    "batch size": 10,
-    "iterations": 1, 
+    "batch size": 2,
+    "iterations": 1,
     "image channels": 3,
     "image size": [32,32],
 
@@ -22,9 +22,9 @@
     "loss_norm": "l1",
     "dropout": 0,
 
-    "save path": "DP-DDPM\\checkpoints\\Imagenet-Pretrain\\",
+    "save path": "checkpoints\\Imagenet-Pretrain\\",
     "split": "train",
-    "data_directory": "DP-DDPM\\data\\Imagenet32_train",
+    "data_directory": "data\\Imagenet32_train",
     "save_and_sample_every": 1000,
 
     "max_clip": 1e-3,

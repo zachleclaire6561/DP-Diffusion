@@ -17,12 +17,14 @@ from src.models import UNet
 def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_path):
     device = hyperparams["device"]
     save_and_sample_every = hyperparams["save_and_sample_every"]
+    
     losses = []
 
     itter = 0
     while True:
         for (step, batch) in enumerate(dataloader):
-
+            checkpoint_path = f"{save_path}{itter}"
+            
             # break out of loop once we've met termination condition
             if itter >= hyperparams["iterations"]:
                 return loss
@@ -38,7 +40,7 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
             loss = p_losses(model, batch, t, hyperparams)
             losses.append(loss)
 
-            if step % 100 == 0:
+            if itter != 0 and itter % save_and_sample_every == 0:
                 print("Loss:", loss.item())
 
                 # save losses
@@ -53,7 +55,6 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
 
             # save checkpoints
             if itter % save_and_sample_every == 0:
-                checkpoint_path = f"{save_path}{itter}"
                 file_name = "model.pt"
 
                 save_file({
@@ -63,7 +64,9 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
                     'loss': loss},
                     checkpoint_path, 
                     file_name)
-
+                
+                # save some samples
+ 
 
 if __name__ == '__main__':
 
@@ -72,7 +75,7 @@ if __name__ == '__main__':
 
     # load and add model parameters
 
-    with open('config/pretrain.json') as f:
+    with open('config\\pretrain_2.json') as f:
         hyperparams = json.load(f)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
