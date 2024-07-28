@@ -38,10 +38,10 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
             # print(t.shape, batch.shape)
 
             loss = p_losses(model, batch, t, hyperparams)
-            losses.append(loss)
+            losses.append(loss.detach().cpu())
 
-            if itter != 0 and itter % save_and_sample_every == 0:
-                print("Loss:", loss.item())
+            if itter != 0 and itter % 5 == 0:
+                print(f"itteration {itter} Loss:", loss.item())
 
                 # save losses
                 np.savetxt(f"{checkpoint_path}", np.array(losses), delimiter=",")

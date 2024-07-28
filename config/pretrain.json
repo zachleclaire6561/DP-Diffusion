@@ -1,6 +1,6 @@
 {
     "timesteps": 1000, 
-    "batch size": 128,
+    "batch size": 256,
     "iterations": 200000,
     "image channels": 3,
     "image size": [32,32],
