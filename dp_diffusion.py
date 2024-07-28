@@ -19,7 +19,7 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
     save_and_sample_every = hyperparams["save_and_sample_every"]
     
     losses = []
-
+    
     itter = 0
     while True:
         for (step, batch) in enumerate(dataloader):
@@ -79,6 +79,10 @@ if __name__ == '__main__':
         hyperparams = json.load(f)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    if torch.cuda.is_available():
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+        torch.cuda.empty_cache()
 
     private_training = True
 
