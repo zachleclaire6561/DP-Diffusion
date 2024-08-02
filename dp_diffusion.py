@@ -34,7 +34,7 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
             batch = batch.to(device)
 
             # weighted sampling of time index
-            t = sample_index(hyperparams).to(torch.int64).to(device)
+            t = sample_index(batch.shape[0], hyperparams).to(torch.int64).to(device)
             # print(t.shape, batch.shape)
 
             loss = p_losses(model, batch, t, hyperparams)

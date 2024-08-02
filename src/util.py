@@ -15,12 +15,12 @@ def linear_beta_schedule(timesteps):
     return torch.linspace(beta_start, beta_end, timesteps)
 
 # Weighted Uniform Sampling
-def sample_index(hyper_parameters):
+def sample_index(sample_count, hyper_parameters):
     weights = hyper_parameters["index sampling weights"]
     index_ranges = hyper_parameters["index ranges"]
 
-    indices = np.array([np.random.randint(*index_ranges[i], size = hyper_parameters["batch size"]) for i in range(len(weights))]).T
-    group_choice = np.random.choice(a = np.arange(len(weights)), p = weights, size = hyper_parameters["batch size"])
+    indices = np.array([np.random.randint(*index_ranges[i], size = sample_count) for i in range(len(weights))]).T
+    group_choice = np.random.choice(a = np.arange(len(weights)), p = weights, size = sample_count)
     indices = indices[np.arange(len(group_choice)), group_choice]
     return torch.from_numpy(indices)
 
