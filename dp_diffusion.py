@@ -49,8 +49,8 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
             loss.backward()
             optimizer.step()
             model.update_parameters(model)
-
-            scheduler.step()
+            if hyperparams["learning schedule"]:
+                scheduler.step()
             itter += 1
 
             # save checkpoints
@@ -81,8 +81,8 @@ if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if torch.cuda.is_available():
-        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
         torch.cuda.empty_cache()
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
     private_training = True
 
@@ -116,6 +116,9 @@ if __name__ == '__main__':
     model = UNet(T = hyperparams["timesteps"], ch = hyperparams["channels"], ch_mult = hyperparams["ch_mults"], 
                  attn = hyperparams["attn"], num_res_blocks= hyperparams["resblocks"], dropout = hyperparams["dropout"])
     
+    if hyperparams["parallel"]:
+        model = torch.nn.DataParallel(model)
+
     model.to(device)
 
     # EMA model weights
@@ -124,7 +127,10 @@ if __name__ == '__main__':
     # TODO: load pretrained model here for other examples
 
     optimizer = Adam(model.parameters(), lr=hyperparams["learning rate"])
-    scheduler = LinearLR(optimizer, start_factor=0.000001, total_iters=5000)
+    if hyperparams["learning schedule"]:
+        scheduler = LinearLR(optimizer, start_factor=0.000001, total_iters=5000)
+    else: 
+        scheduler = None
 
     print(f"Loaded model. Total learnable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
 
@@ -134,7 +140,7 @@ if __name__ == '__main__':
     
     print(f"Loaded dataset. length of dataset: {len(dataset)}")
     dataloader = DataLoader(dataset, batch_size=hyperparams["batch size"], shuffle=True)
-
+    
     iterations = hyperparams["iterations"]
 
     # training 

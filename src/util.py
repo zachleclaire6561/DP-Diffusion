@@ -1,9 +1,11 @@
-# source: 
+# source: [for the sampling stuff]
 
 import torch
 from torch.nn import functional as F
 from torch.utils.data import Dataset
 import numpy as np
+
+from torchvision.transforms import Compose, RandomCrop, RandomVerticalFlip, RandomHorizontalFlip, Normalize
 
 import os
 import pickle
@@ -130,3 +132,26 @@ def save_file(object, path, file_name):
     if not os.path.exists(path):
         os.mkdir(path)
     torch.save(object, f"{path}/{file_name}")
+
+
+
+
+# Source: Unlocking High-Accuracy Differentially Private Image Classification through Scale
+# Page: 30-31 for the various datasets
+
+def get_augmult_transform(augmult = 0, image_shape = (32,32), random_crop = True, random_flip = True, random_color = False):
+    transform_list = []
+    
+    for _ in range(augmult):
+        if random_crop:
+            # this needs to be fixed to align with paper's augmult procedure
+            transform_list.append(RandomCrop(image_shape, pad_if_needed=True))
+        if random_flip:
+            transform_list.append(RandomVerticalFlip(p = 0.5))
+            transform_list.append(RandomHorizontalFlip(p = 0.5))
+        #if random_color:
+        #    transform_list.append()
+    transform_list.normalize()
+        
+    return Compose(transform_list)
+

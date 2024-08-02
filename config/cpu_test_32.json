@@ -14,6 +14,8 @@
     "channel_per_head": 16,
 
     "private training": true,
+    "learning schedule": false,
+    "parallel": false,
     "learning rate": 1e-3,
     "EMA": 0.999,
     "index ranges": [[0,200], [200,800], [800,1000]],
