@@ -116,6 +116,9 @@ if __name__ == '__main__':
     model = UNet(T = hyperparams["timesteps"], ch = hyperparams["channels"], ch_mult = hyperparams["ch_mults"], 
                  attn = hyperparams["attn"], num_res_blocks= hyperparams["resblocks"], dropout = hyperparams["dropout"])
     
+    if hyperparams["parallel"]:
+        model = torch.nn.DataParallel(model)
+
     model.to(device)
 
     # EMA model weights

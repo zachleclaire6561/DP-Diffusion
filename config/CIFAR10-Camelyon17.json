@@ -15,6 +15,7 @@
 
     "private training": true,
     "learning schedule": true,
+    "parallel": true,
     "learning rate": 1e-3,
     "EMA": 0.999,
     "index ranges": [[0,30], [30,600], [600,1000]],
