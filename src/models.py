@@ -239,10 +239,16 @@ class UNet(nn.Module):
 
 if __name__ == '__main__':
     batch_size = 8
-    model = UNet(
-        T=1000, ch=192, ch_mult=[1, 2, 2, 2], attn=[1],
-        num_res_blocks=2, dropout=0.1)
-    x = torch.randn(batch_size, 3, 32, 32)
-    t = torch.randint(1000, (batch_size, ))
-    y = model(x, t)
+    #model = UNet(
+    #    T=1000, ch=192, ch_mult=[1, 2, 2, 2], attn=[1],
+    #    num_res_blocks=2, dropout=0.1)
+    #x = torch.randn(batch_size, 3, 32, 32)
+    #t = torch.randint(1000, (batch_size, ))
+    #y = model(x, t)
+    #print(f"Loaded model. Total learnable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
+    #model = UNet(
+    #    T=1000, ch=64, ch_mult=[1, 2, 2], attn=[1],
+    #    num_res_blocks=1, dropout=0.1)
+    #print(f"Loaded model. Total learnable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
+    model = AttnBlock(192*2)
     print(f"Loaded model. Total learnable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
