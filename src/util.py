@@ -107,6 +107,7 @@ def load_npy(file):
 class ImageNet(Dataset):
     def __init__(self, data_dir):
         self.samples = None
+        #self.transform = Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225])
         for entry in os.listdir(data_dir):
             batch_file = os.path.join(data_dir, entry)
             datafile = unpickle(batch_file)["data"]
@@ -126,7 +127,9 @@ class ImageNet(Dataset):
             return self.samples.shape[0]
 
     def __getitem__(self, idx):
-        return self.samples[idx]
+        return (2*self.samples[idx].to(torch.float32)/255)-1
+
+
 
 def save_file(object, path, file_name):
     if not os.path.exists(path):
@@ -151,7 +154,9 @@ def get_augmult_transform(augmult = 0, image_shape = (32,32), random_crop = True
             transform_list.append(RandomHorizontalFlip(p = 0.5))
         #if random_color:
         #    transform_list.append()
-    transform_list.normalize()
+    
+
+    transform_list.append(Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225]))
         
     return Compose(transform_list)
 

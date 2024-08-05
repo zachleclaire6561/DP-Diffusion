@@ -20,7 +20,7 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
     
     losses = []
     
-    itter = 0
+    itter = hyperparams["load iteration"]
     while True:
         for (step, batch) in enumerate(dataloader):
             checkpoint_path = f"{save_path}{itter}"
@@ -40,11 +40,6 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
             loss = p_losses(model, batch, t, hyperparams)
             losses.append(loss.detach().cpu())
 
-            if itter != 0 and itter % 5 == 0:
-                print(f"itteration {itter} Loss:", loss.item())
-
-                # save losses
-                np.savetxt(f"{checkpoint_path}", np.array(losses), delimiter=",")
 
             loss.backward()
             optimizer.step()
@@ -52,6 +47,9 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
             if hyperparams["learning schedule"]:
                 scheduler.step()
             itter += 1
+    
+            if itter % 5 == 0: 
+                 print((f"itteration {itter} Loss:", loss.item()))
 
             # save checkpoints
             if itter % save_and_sample_every == 0:
@@ -64,13 +62,14 @@ def training_loop(model, optimizer, scheduler, hyperparams, dataloader, save_pat
                     'loss': loss},
                     checkpoint_path, 
                     file_name)
-                
+
+                np.savetxt(f"{checkpoint_path}/loss.npy", np.array(losses), delimiter=",")  
                 # save some samples
  
 
 if __name__ == '__main__':
 
-   # arg parse stuff here
+    # arg parse stuff here
     
 
     # load and add model parameters
@@ -124,7 +123,8 @@ if __name__ == '__main__':
     # EMA model weights
     model = AveragedModel(model)
 
-    # TODO: load pretrained model here for other examples
+    if hyperparams["load"]:
+        model.load_state_dict(torch.load(hyperparams["load file"])["model_state_dict"])
 
     optimizer = Adam(model.parameters(), lr=hyperparams["learning rate"])
     if hyperparams["learning schedule"]:
